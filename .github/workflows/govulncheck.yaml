@@ -21,16 +21,17 @@ jobs:
           repository: ${{ github.event.repository.owner.login }}/demo-repo
           ref: main
 
+      - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
+        with:
+            go-version: '1.24'
+            check-latest: true
+            cache: true
+            
       - name: Setup bnd
         uses: carabiner-dev/actions/install/bnd@HEAD
 
       - name: Setup revex
         uses: carabiner-dev/actions/install/revex@HEAD
-
-      - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
-        with:
-          go-version-file: go.mod
-          cache: false
   
       - name: Generate govulncheck OpenVEX documents
         run: |
