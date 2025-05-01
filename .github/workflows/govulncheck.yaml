@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+
+name: govulncheck
+
+jobs:
+  attest:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          repository: ${{ github.event.repository.owner.login }}/demo-repo
+          ref: main
+
+      - name: Setup bnd
+        uses: carabiner-dev/actions/install/bnd@HEAD
+
+      - name: Setup revex
+        uses: carabiner-dev/actions/install/revex@HEAD
+  
+      - name: Generate govulncheck OpenVEX documents
+        run: |
+            go run golang.org/x/vuln/cmd/govulncheck@latest -format=openvex ./... | \
+              revex --filter-status=not_affected \
+                    --gvc-fix-purls \
+                    --gvc-product-hash=sha-256:52e2da8f663cfb629f98dac2708106b139f851386a723faeba4dde373c24e844 \
+                    --gvc-product-id=git+https://github.com/${{ github.event.repository.owner.login }}/demo-repo@main > vulncheck.openvex.json
+
+      -  name: "Sign and push attestation"
+         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+         run: |
+          cat vulncheck.openvex.json
+          bnd predicate vulncheck.openvex.json \
+            --type https://openvex.dev/ns \
+            --subject=sha256:52e2da8f663cfb629f98dac2708106b139f851386a723faeba4dde373c24e844 \
+            > vulncheck.openvex.bundle.json
+          bnd push github ${{github.repository}} vulncheck.openvex.bundle.json

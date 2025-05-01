@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: vexflow
+
+on:
+  workflow_dispatch: {}
+  # schedule:
+  #   - cron:  '30 5,17 * * *'
+  issue_comment:
+    types:
+      - created
+
+
+permissions:
+  contents: read
+    
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    permissions:
+        contents: read      # To read repo data 
+        issues: write       # To read and write issues
+        id-token: write     # To mint signing tokens
+        attestations: write # Push attested VEX data to the attestations store
+      
+    steps:
+        - name: Setup vexflow
+          uses: carabiner-dev/actions/install/vexflow@HEAD
+        - name: Run vexflow update
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          run: |
+            vexflow update --triage-repo=${{github.repository}} carabiner-dev/demo-repo
